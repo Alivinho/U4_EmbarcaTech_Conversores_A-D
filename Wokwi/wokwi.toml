@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = ../build/U4_Tarefa_Joystick_Controll.uf2''
+elf = '../build/U4_Tarefa_Joystick_Controll.elf'
