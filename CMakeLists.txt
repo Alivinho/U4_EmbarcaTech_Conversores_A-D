@@ -50,6 +50,8 @@ target_link_libraries(U4_Tarefa_Joystick_Controll
         hardware_adc
         hardware_i2c
         hardware_pwm   
+        hardware_timer
+        hardware_gpio
 
 )
 
