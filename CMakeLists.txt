@@ -35,7 +35,9 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(U4_Tarefa_Joystick_Controll main.c )
+add_executable(U4_Tarefa_Joystick_Controll main.c
+        lib/ssd1306.c
+)
 
 pico_set_program_name(U4_Tarefa_Joystick_Controll "U4_Tarefa_Joystick_Controll")
 pico_set_program_version(U4_Tarefa_Joystick_Controll "0.1")
