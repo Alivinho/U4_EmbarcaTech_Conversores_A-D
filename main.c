@@ -48,6 +48,8 @@ uint16_t map_joystick_value(uint16_t value);
 void On_GreenLed();
 void button_isr(uint gpio, uint32_t events);
 bool debounce_timer_callback(struct repeating_timer *t);
+void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step);
+void draw_square(int pos_x, int pos_y);
 
 // Variáveis para controle dos botões 
 volatile bool button_a_pressed = false;
@@ -87,20 +89,26 @@ int main() {
     add_repeating_timer_ms(DEBOUNCE_TIME_MS, debounce_timer_callback, NULL, &debounce_timer);
 
     bool cor = true;
+    int pos_x = 32;
+    int pos_y = 64;
+    int step = 2;
 
     // Limpa o display
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
 
-    // Desenha o retângulo uma única vez
-    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // Desenha o retângulo (com cor)
-    ssd1306_draw_string(&ssd, "ESPERANDO", 25, 30); // Desenha uma string        
-    ssd1306_send_data(&ssd);  // Atualiza o display
+    ssd1306_fill(&ssd, false); // Limpa o display
+    ssd1306_rect(&ssd, pos_x, pos_y, 8, 8, true, true); // Desenha o quadrado preenchido
+    ssd1306_send_data(&ssd); // Atualiza o display
+
 
     while (true) {
         Joystick_Read(&valor_X, &valor_Y);
         printf("X: %d, Y: %d\n", valor_X, valor_Y);
 
+        update_position(&pos_x, &pos_y, valor_X, valor_Y, step);
+        draw_square(pos_x, pos_y);
+     
         uint16_t red_pwm = map_joystick_value(valor_X);
         uint16_t blue_pwm = map_joystick_value(valor_Y);
 
@@ -184,6 +192,30 @@ void On_GreenLed() {
     static bool led_state = false;
     led_state = !led_state;
     gpio_put(LED_GREEN_PIN, led_state);
+}
+
+
+void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step) {
+    if (eixo_X > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
+        *pos_x -= step;
+    } else if (eixo_X < JOYSTICK_CENTER - JOYSTICK_TOLERANCE) {
+        *pos_x += step;
+    }
+    if (eixo_Y > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
+        *pos_y += step;
+    } else if (eixo_Y < JOYSTICK_CENTER - JOYSTICK_TOLERANCE) {
+        *pos_y -= step;
+    }
+    if (*pos_x < 0) *pos_x = 0;
+    if (*pos_x > WIDTH - 8) *pos_x = WIDTH - 8;
+    if (*pos_y < 0) *pos_y = 0;
+    if (*pos_y > HEIGHT - 8) *pos_y = HEIGHT - 8;
+}
+
+void draw_square(int pos_x, int pos_y) {
+    ssd1306_fill(&ssd, false);
+    ssd1306_rect(&ssd, pos_x, pos_y, 8, 8, true, true);
+    ssd1306_send_data(&ssd);
 }
 
 void button_isr(uint gpio, uint32_t events) {
