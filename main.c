@@ -58,6 +58,9 @@ volatile uint32_t last_button_a_time = 0;
 volatile uint32_t last_joystick_button_time = 0;
 struct repeating_timer debounce_timer;
 
+bool cor = true;
+
+
 int main() {
     stdio_init_all();
     setupLeds_Button();
@@ -85,23 +88,14 @@ int main() {
 
     // Rotinas de Interrupção 
     gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
-    gpio_set_irq_enabled(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled_with_callback(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     add_repeating_timer_ms(DEBOUNCE_TIME_MS, debounce_timer_callback, NULL, &debounce_timer);
 
-    bool cor = true;
     int pos_x = 32;
     int pos_y = 64;
     int step = 2;
 
-    // Limpa o display
-    ssd1306_fill(&ssd, false);
-    ssd1306_send_data(&ssd);
-
-    ssd1306_fill(&ssd, false); // Limpa o display
-    ssd1306_rect(&ssd, pos_x, pos_y, 8, 8, true, true); // Desenha o quadrado preenchido
-    ssd1306_send_data(&ssd); // Atualiza o display
-
-
+    
     while (true) {
         Joystick_Read(&valor_X, &valor_Y);
         printf("X: %d, Y: %d\n", valor_X, valor_Y);
@@ -127,6 +121,8 @@ int main() {
 
         if (joystick_button_pressed) {
             On_GreenLed();
+            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Redesenha o retângulo externo
+            ssd1306_send_data(&ssd); // Atualiza a tela
             joystick_button_pressed = false;
         }
 
@@ -197,9 +193,9 @@ void On_GreenLed() {
 
 void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step) {
     if (eixo_X > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
-        *pos_x -= step;
-    } else if (eixo_X < JOYSTICK_CENTER - JOYSTICK_TOLERANCE) {
         *pos_x += step;
+    } else if (eixo_X < JOYSTICK_CENTER - JOYSTICK_TOLERANCE) {
+        *pos_x -= step;
     }
     if (eixo_Y > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
         *pos_y += step;
@@ -229,6 +225,10 @@ void button_isr(uint gpio, uint32_t events) {
     if (gpio == JOYSTICK_BUTTON_PIN && (current_time - last_joystick_button_time) > DEBOUNCE_TIME_MS) {
         last_joystick_button_time = current_time;
         joystick_button_pressed = true;
+
+        
+
+       
     }
 }
 
