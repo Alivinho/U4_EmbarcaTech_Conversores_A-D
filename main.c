@@ -5,6 +5,16 @@
 #include "hardware/pwm.h"
 #include "hardware/gpio.h"
 #include "hardware/timer.h"
+#include "hardware/i2c.h"
+#include "lib/ssd1306.h"
+#include "lib/font.h"
+
+// Display Oled - SSD1306
+#define I2C_PORT i2c1
+#define I2C_SDA 14
+#define I2C_SCL 15
+#define endereco 0x3C
+ssd1306_t ssd;
 
 // Definição das GPIOS e Canais ADC do Joystick
 #define JOYSTICK_X_PIN 26
@@ -51,6 +61,16 @@ int main() {
     setupLeds_Button();
     setupJoystick();
 
+    // Configuração (Inicialuzação) do Display Oled
+    i2c_init(I2C_PORT, 400 * 1000);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C); 
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C); 
+    gpio_pull_up(I2C_SDA); 
+    gpio_pull_up(I2C_SCL); 
+    ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); 
+    ssd1306_config(&ssd); 
+    ssd1306_send_data(&ssd);
+
     uint16_t valor_X, valor_Y;
     bool pwm_enabled = true;
 
@@ -65,6 +85,17 @@ int main() {
     gpio_set_irq_enabled_with_callback(BUTTON_A_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     gpio_set_irq_enabled(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true);
     add_repeating_timer_ms(DEBOUNCE_TIME_MS, debounce_timer_callback, NULL, &debounce_timer);
+
+    bool cor = true;
+
+    // Limpa o display
+    ssd1306_fill(&ssd, false);
+    ssd1306_send_data(&ssd);
+
+    // Desenha o retângulo uma única vez
+    ssd1306_rect(&ssd, 3, 3, 122, 58, true, false);  // Desenha o retângulo (com cor)
+    ssd1306_draw_string(&ssd, "ESPERANDO", 25, 30); // Desenha uma string        
+    ssd1306_send_data(&ssd);  // Atualiza o display
 
     while (true) {
         Joystick_Read(&valor_X, &valor_Y);
