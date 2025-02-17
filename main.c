@@ -146,6 +146,7 @@ int main() {
     }
 }
 
+// Função de inicialização dos LEDs e do Botão 
 void setupLeds_Button() {
     gpio_init(LED_RED_PIN);
     gpio_set_dir(LED_RED_PIN, GPIO_OUT);
@@ -165,12 +166,14 @@ void setupLeds_Button() {
     gpio_pull_up(JOYSTICK_BUTTON_PIN);
 }
 
+// Função de Inicialização do Joystick 
 void setupJoystick() {
     adc_init();
     adc_gpio_init(JOYSTICK_X_PIN);
     adc_gpio_init(JOYSTICK_Y_PIN);
 }
 
+// Função para leitura de valores dos eixos X e Y do Joystick 
 void Joystick_Read(uint16_t *eixo_X, uint16_t *eixo_Y) {
     adc_select_input(ADC_CHANNEL_X0);
     sleep_us(2);
@@ -181,6 +184,7 @@ void Joystick_Read(uint16_t *eixo_X, uint16_t *eixo_Y) {
     *eixo_Y = adc_read();
 }
 
+// Função de inicialização do PWM
 void setup_pwm(uint pin) {
     gpio_set_function(pin, GPIO_FUNC_PWM);
     uint slice_num = pwm_gpio_to_slice_num(pin);
@@ -190,6 +194,7 @@ void setup_pwm(uint pin) {
     pwm_set_gpio_level(pin, 0);
 }
 
+// Função de configuração da "Zona Morta" do Joystick 
 uint16_t map_joystick_value(uint16_t value) {
     if (abs(value - JOYSTICK_CENTER) <= JOYSTICK_TOLERANCE) {
         return 0;
@@ -200,13 +205,14 @@ uint16_t map_joystick_value(uint16_t value) {
     }
 }
 
+// Função para ligar o Led Verde 
 void On_GreenLed() {
     static bool led_state = false;
     led_state = !led_state;
     gpio_put(LED_GREEN_PIN, led_state);
 }
 
-
+// Função para movimentação do Quadrado 8x8 
 void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step, bool *moved) {
     if (eixo_X > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
         *pos_x += step;
@@ -222,10 +228,15 @@ void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, i
     if (*pos_x > WIDTH - 8) *pos_x = WIDTH - 8;
     if (*pos_y < 0) *pos_y = 0;
     if (*pos_y > HEIGHT - 8) *pos_y = HEIGHT - 8;
+
+    printf("Pos X: %d, Width: %d\n", *pos_x, WIDTH);
+
 }
 
+// Função para desenho do Quadrado 8x8
 void draw_square(int pos_x, int pos_y) {
-    ssd1306_fill(&ssd, false);  // Limpa a tela
+    
+    ssd1306_fill(&ssd, false);  
 
     // Redesenha a borda se estiver ativa
     if (border_visible) {
@@ -238,6 +249,8 @@ void draw_square(int pos_x, int pos_y) {
     ssd1306_rect(&ssd, pos_x, pos_y, 8, 8, true, true);
     ssd1306_send_data(&ssd);
 }
+
+// Função para rotina de interrupção dos Botões 
 void button_isr(uint gpio, uint32_t events) {
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
 
@@ -253,6 +266,7 @@ void button_isr(uint gpio, uint32_t events) {
     }
 }
 
+// Temporizador 
 bool debounce_timer_callback(struct repeating_timer *t) {
     if (gpio_get(BUTTON_A_PIN) == 1) {
         button_a_pressed = false;
