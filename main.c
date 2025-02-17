@@ -48,7 +48,7 @@ uint16_t map_joystick_value(uint16_t value);
 void On_GreenLed();
 void button_isr(uint gpio, uint32_t events);
 bool debounce_timer_callback(struct repeating_timer *t);
-void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step);
+void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step, bool *moved);
 void draw_square(int pos_x, int pos_y);
 
 // Variáveis para controle dos botões 
@@ -57,11 +57,15 @@ volatile bool joystick_button_pressed = false;
 volatile uint32_t last_button_a_time = 0;
 volatile uint32_t last_joystick_button_time = 0;
 struct repeating_timer debounce_timer;
+volatile bool border_visible = false;
 
+
+// Variável para controle do Display Oled
 bool cor = true;
 
 
 int main() {
+
     stdio_init_all();
     setupLeds_Button();
     setupJoystick();
@@ -76,12 +80,13 @@ int main() {
     ssd1306_config(&ssd); 
     ssd1306_send_data(&ssd);
 
+    // Variáveis para armazenamentos dos valores dos eixos do Joystick 
     uint16_t valor_X, valor_Y;
-    bool pwm_enabled = true;
 
+    // PWM dos LEDs 
+    bool pwm_enabled = true;
     setup_pwm(LED_RED_PIN);
     setup_pwm(LED_BLUE_PIN);
-
     pwm_set_gpio_level(LED_RED_PIN, 0);
     pwm_set_gpio_level(LED_BLUE_PIN, 0);
     gpio_put(LED_GREEN_PIN, 0);
@@ -91,20 +96,25 @@ int main() {
     gpio_set_irq_enabled_with_callback(JOYSTICK_BUTTON_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     add_repeating_timer_ms(DEBOUNCE_TIME_MS, debounce_timer_callback, NULL, &debounce_timer);
 
+    // Variáveis para desenhodo do quadrado 8x8
     int pos_x = 32;
     int pos_y = 64;
     int step = 2;
+    bool moved = true;
 
-    
+
     while (true) {
         Joystick_Read(&valor_X, &valor_Y);
         printf("X: %d, Y: %d\n", valor_X, valor_Y);
 
-        update_position(&pos_x, &pos_y, valor_X, valor_Y, step);
-        draw_square(pos_x, pos_y);
+        update_position(&pos_x, &pos_y, valor_X, valor_Y, step, &moved);
+        if (moved) {
+            draw_square(pos_x, pos_y);
+        }
      
-        uint16_t red_pwm = map_joystick_value(valor_X);
-        uint16_t blue_pwm = map_joystick_value(valor_Y);
+     
+        uint16_t red_pwm = map_joystick_value(valor_Y);
+        uint16_t blue_pwm = map_joystick_value(valor_X);
 
         if (pwm_enabled) {
             pwm_set_gpio_level(LED_RED_PIN, red_pwm);
@@ -121,8 +131,14 @@ int main() {
 
         if (joystick_button_pressed) {
             On_GreenLed();
-            ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Redesenha o retângulo externo
-            ssd1306_send_data(&ssd); // Atualiza a tela
+            border_visible = !border_visible;
+            ssd1306_fill(&ssd, false);
+            if (border_visible) {
+                ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor);
+                ssd1306_rect(&ssd, 4, 4, 122, 58, cor, !cor);
+                ssd1306_rect(&ssd, 5, 5, 122, 58, cor, !cor);
+            }
+            ssd1306_send_data(&ssd);
             joystick_button_pressed = false;
         }
 
@@ -191,7 +207,7 @@ void On_GreenLed() {
 }
 
 
-void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step) {
+void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, int step, bool *moved) {
     if (eixo_X > JOYSTICK_CENTER + JOYSTICK_TOLERANCE) {
         *pos_x += step;
     } else if (eixo_X < JOYSTICK_CENTER - JOYSTICK_TOLERANCE) {
@@ -209,11 +225,19 @@ void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, i
 }
 
 void draw_square(int pos_x, int pos_y) {
-    ssd1306_fill(&ssd, false);
+    ssd1306_fill(&ssd, false);  // Limpa a tela
+
+    // Redesenha a borda se estiver ativa
+    if (border_visible) {
+        ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor);
+        ssd1306_rect(&ssd, 4, 4, 122, 58, cor, !cor);
+        ssd1306_rect(&ssd, 5, 5, 122, 58, cor, !cor);
+    }
+
+    // Desenha o quadrado
     ssd1306_rect(&ssd, pos_x, pos_y, 8, 8, true, true);
     ssd1306_send_data(&ssd);
 }
-
 void button_isr(uint gpio, uint32_t events) {
     uint32_t current_time = to_ms_since_boot(get_absolute_time());
 
@@ -224,10 +248,7 @@ void button_isr(uint gpio, uint32_t events) {
     
     if (gpio == JOYSTICK_BUTTON_PIN && (current_time - last_joystick_button_time) > DEBOUNCE_TIME_MS) {
         last_joystick_button_time = current_time;
-        joystick_button_pressed = true;
-
-        
-
+        joystick_button_pressed = true; 
        
     }
 }
