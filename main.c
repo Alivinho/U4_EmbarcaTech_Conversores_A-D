@@ -59,10 +59,8 @@ volatile uint32_t last_joystick_button_time = 0;
 struct repeating_timer debounce_timer;
 volatile bool border_visible = false;
 
-
 // Variável para controle do Display Oled
 bool cor = true;
-
 
 int main() {
 
@@ -102,7 +100,6 @@ int main() {
     int step = 2;
     bool moved = true;
 
-
     while (true) {
         Joystick_Read(&valor_X, &valor_Y);
         printf("X: %d, Y: %d\n", valor_X, valor_Y);
@@ -111,8 +108,7 @@ int main() {
         if (moved) {
             draw_square(pos_x, pos_y);
         }
-     
-     
+
         uint16_t red_pwm = map_joystick_value(valor_Y);
         uint16_t blue_pwm = map_joystick_value(valor_X);
 
@@ -228,8 +224,6 @@ void update_position(int *pos_x, int *pos_y, uint16_t eixo_X, uint16_t eixo_Y, i
     if (*pos_x > WIDTH - 8) *pos_x = WIDTH - 8;
     if (*pos_y < 0) *pos_y = 0;
     if (*pos_y > HEIGHT - 8) *pos_y = HEIGHT - 8;
-
-    printf("Pos X: %d, Width: %d\n", *pos_x, WIDTH);
 
 }
 
